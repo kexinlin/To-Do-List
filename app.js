@@ -1,8 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-const getDate = require(__dirname + "/date.js");
-console.log(getDate);
+// const getDate = require(__dirname + "/date.js");
 const app = express();
 
 app.set("view engine", "ejs");
@@ -25,7 +24,6 @@ const item3 = new Item({ name: "<-- Hit this to delete an item." });
 const defaultItems = [item1, item2, item3];
 
 app.get("/", (req, res) => {
-  let day = getDate();
   Item.find({}, function (err, foundItems) {
     if (foundItems.length === 0) {
       Item.insertMany(defaultItems, function (err) {
@@ -38,7 +36,7 @@ app.get("/", (req, res) => {
       });
     } else {
       res.render("list", {
-        listTitle: day,
+        listTitle: "Today",
         listItems: foundItems,
       });
     }
@@ -46,20 +44,47 @@ app.get("/", (req, res) => {
 });
 
 app.post("/", (req, res) => {
+  let listName = req.body.list;
   let newItem = new Item({ name: req.body.newItem });
-  newItem.save();
-  res.redirect("/");
+  if (listName === "Today") {
+    newItem.save();
+    console.log("redirect");
+    res.redirect("/");
+  } else {
+    console.log(listName);
+    List.findOne({ name: listName }, function (err, foundList) {
+      if (!err) {
+        foundList.items.push(newItem);
+        foundList.save();
+        res.redirect("/" + listName);
+      } else {
+        console.log(err);
+      }
+    });
+  }
 });
 
 app.post("/delete", (req, res) => {
   let deletedItemId = req.body.checkbox;
+  let listName = req.body.listName;
   console.log(deletedItemId);
-  Item.findByIdAndRemove(deletedItemId, function (err) {
-    if (!err) {
-      console.log("Successfully deleted!");
-      res.redirect("/");
-    }
-  });
+  if (listName == "Today") {
+    Item.findByIdAndRemove(deletedItemId, function (err) {
+      if (!err) {
+        res.redirect("/");
+      }
+    });
+  } else {
+    List.findOneAndUpdate(
+      { name: listName },
+      { $pull: { items: { _id: deletedItemId } } },
+      function (err, foundList) {
+        if (!err) {
+          res.redirect("/" + listName);
+        }
+      }
+    );
+  }
 });
 
 app.get("/:customListName", (req, res) => {
@@ -78,12 +103,6 @@ app.get("/:customListName", (req, res) => {
       });
     }
   });
-});
-
-app.post("/work", (req, res) => {
-  let newWorkItem = req.body.newItem;
-  workItems.push(newWorkItem);
-  res.redirect("/work");
 });
 
 app.listen(3000, function () {
