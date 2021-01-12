@@ -1,16 +1,19 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-// const getDate = require(__dirname + "/date.js");
+const _ = require("lodash");
 const app = express();
 
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-mongoose.connect("mongodb://localhost:27017/todolistDB", {
-  useNewUrlParser: true,
-});
+mongoose.connect(
+  "mongodb+srv://admin-kexin:test123@cluster0.cp3cv.mongodb.net/todolistDB",
+  {
+    useNewUrlParser: true,
+  }
+);
 
 // Mongoose Schemas
 const itemSchema = new mongoose.Schema({ name: String });
@@ -88,7 +91,7 @@ app.post("/delete", (req, res) => {
 });
 
 app.get("/:customListName", (req, res) => {
-  const customerListName = req.params.customListName;
+  const customerListName = _.capitalize(req.params.customListName);
   List.findOne({ name: customerListName }, function (err, foundList) {
     if (err) {
       console.log(err);
